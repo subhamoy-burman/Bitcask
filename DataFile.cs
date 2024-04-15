@@ -13,21 +13,31 @@ namespace Bitcask.Console
     internal class DataFile
     {
         private readonly string _filePath;
+        private readonly FileStream _fileStream;
 
         public DataFile(string filePath)
         {
             _filePath = filePath;
+            _fileStream = new FileStream(_filePath, FileMode.Append);
         }
 
-        public void Append(KeyValuePair<string, string> item)
+        public long Append(KeyValuePair<string, string> item)
         {
-            //TODO: 
+            long position = _fileStream.Position;
+            byte[] data = Encoding.UTF8.GetBytes($"{item.Key}:{item.Value}\n");
+            _fileStream.Write(data, 0, data.Length);
+            _fileStream.Flush();
+            return position;
         }
 
-        public string Read(string key)
+        public string Read(long position)
         {
-            return string.Empty;
-            //TODO: 
+            _fileStream.Position = position;
+            StreamReader reader = new StreamReader(_fileStream);
+            string line = reader.ReadLine()!;
+            return line!.Split(':')[1];
         }
+
+        public string GetCurrentFilePath() { return _filePath; }
     }
 }
