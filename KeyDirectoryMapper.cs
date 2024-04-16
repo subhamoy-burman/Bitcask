@@ -11,22 +11,44 @@ namespace Bitcask.Console
     /// </summary>
     internal class KeyDirectoryMapper
     {
-        private readonly Dictionary<string, long> _index = new Dictionary<string, long>();
+        private readonly Dictionary<string, (string, long)> _index = new Dictionary<string, (string, long)>();
 
-        public void Add(string key, long position)
+        public void Add(string key, (string, long) position)
         {
             _index[key] = position;
         }
 
-        public long GetPosition(string key)
+        public (string?, long) GetPosition(string key)
         {
-            //TODO
-            return _index.ContainsKey(key) ? _index[key] : -1;
+            return _index.ContainsKey(key) ? _index[key] : (null, -1);
         }
 
         public List<string> GetAllKeys()
         {
             return _index.Keys.ToList();
+        }
+
+        public void Update(string directoryPath)
+        {
+            _index.Clear();
+
+            var allFiles = Directory.GetFiles(directoryPath, "*.data");
+            foreach (var file in allFiles)
+            {
+                using (var stream = File.OpenRead(file))
+                {
+                    var reader = new StreamReader(stream);
+                    string line;
+                    long position = 0;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        var parts = line.Split(':');
+                        string key = parts[0];
+                        _index[key] = (file, position);
+                        position += Encoding.UTF8.GetByteCount(line) + 1; // +1 for the newline character
+                    }
+                }
+            }
         }
     }
 }
